@@ -1,2 +1,3 @@
 # checknums-service
-Gets drawing results from [Powerball.com](http://powerball.com) and provides them via JSON to be consumed by [checknums.com](https://checknums.com).
+
+This service provides Powerball drawing results (as JSON) using data from [Powerball.com](http://powerball.com). The output of this service is consumed by [checknums.com](https://checknums.com) where you can check multiple tickets against a single drawing.
