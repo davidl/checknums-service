@@ -124,8 +124,10 @@ app.get("/drawings", function (request, response) {
   // The "Magic Hour" occurs after 2304 on draw day when we can expect that day's
   // results to be posted to the Powerball.com homepage:
   var isMagicHour = isDrawDay && hourNow === 23 && minuteNow > 4;
+  // console.log('isMagicHour: ' + isMagicHour);
   // Calculate the last drawing date. If we're not in the Magic Hour, use the most recent Wednesday or Saturday:
   var lastDrawDateStr = isMagicHour ? dateStr : dateNow.day(dayOfWeek > 3 ? 3 : -1).format('MM/DD/YYYY');
+  // console.log('lastDrawDateStr: ' + lastDrawDateStr);
   
   function sendDrawings () {
     var responseData = [];
@@ -201,19 +203,22 @@ app.get("/drawings", function (request, response) {
   }
   
   // Check if the database has the results from the last draw date
-  var dbHasLatestResults = true; // let's be optimistic :)
+  var dbHasLatestResults = false;
   db.find({}).sort({ dateSortable: -1 }).limit(1).exec(function (err, drawings) {
     drawings.forEach(function(drawing) {
+      // console.log('drawing.date: ' + drawing.date);
       dbHasLatestResults = drawing.date == lastDrawDateStr;
+      // console.log('dbHasLatestResults: ' + dbHasLatestResults);
     });
-  });
   
-  // If we have the latest results, send them. If not, scrape them (and then send them):
-  if (dbHasLatestResults) {
-    sendDrawings();
-  } else {
-    getLatestResults();
-  }
+    // If we have the latest results, send them. If not, scrape them (and then send them):
+    if (dbHasLatestResults) {
+      sendDrawings();
+    } else {
+      // console.log('Else: getLatestResults');
+      getLatestResults();
+    }
+  });
 });
 
 // removes entries from db and populates it with default drawings
