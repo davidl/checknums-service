@@ -43,7 +43,7 @@ function dbInit () {
   }
 
   function parseWinnumsCB () {
-    // console.log('parseWinnumsCB called');
+    // Do not delete until the reference inside parseWinnums() is deleted.
   }
 
   function parseWinnums () {
@@ -90,7 +90,7 @@ function dbInit () {
 /*-- APP STARTUP DATABASE CHECK --*/
 // This runs when the server is started:
 db.count({}, function (err, count) {
-  console.log("There are " + count + " drawings in the database");
+  // console.log("There are " + count + " drawings in the database");
   if (err) console.log("There's a problem with the database: ", err);
   else if (count <= 0) dbInit(); // database is empty so let's populate it
 });
@@ -113,11 +113,16 @@ app.get("/", function (request, response) {
 });
 
 app.get("/drawings", function (request, response) {
-  var dateStr = moment().tz('America/New_York').format();
-  var dateNow = new Date(dateStr);
-  var hourNow = dateNow.getHours();
-  var dayOfWeek = dateNow.getDay();
+  var dateNow = moment().tz('America/New_York');
+  var dateStr = dateNow.format();
+  var hourNow = dateNow._d.getHours();
+  var minuteNow = dateNow._d.getMinutes();
+  var dayOfWeek = dateNow._d.getDay();
   var isDrawDay = dayOfWeek === 3 || dayOfWeek === 6;
+  
+  // console.log('dateStr', dateStr);
+  // console.log('minuteNow', minuteNow);
+  // console.log('isDrawDay', isDrawDay);
   
   function sendDrawings () {
     var responseData = [];
@@ -129,7 +134,7 @@ app.get("/drawings", function (request, response) {
     });
   }
   
-  function getLatestResults () {
+  function getLatestResults (drawingDate) {
     var scrapedData;
     var website = 'http://www.powerball.com';
     scrapeIt(website, {
@@ -161,33 +166,52 @@ app.get("/drawings", function (request, response) {
         var dateArr = scrapedData.date.split('/');
         if (dateArr[0] < 10) {
           dateArr[0] = '0' + dateArr[0];
-          scrapedData.date = '0' + scrapedData.date;
         }
+        if (dateArr[1] < 10) {
+          dateArr[1] = '0' + dateArr[1];
+        }
+        scrapedData.date = dateArr.join('/');
         var dateSortable = dateArr[2] + dateArr[0] + dateArr[1];
         scrapedData.dateSortable = dateSortable;
         scrapedData.dateLabel = moment(dateSortable).format('dddd M/D/YYYY');
-        db.insert(scrapedData, function (err, resultsAdded) {
-          if (err) console.log("There's a problem adding scraped results to the database: ", err);
-          // else if (resultsAdded) console.log("Results inserted in the database for " + scrapedData.date + " drawing");
-        });
-        sendDrawings();
+        // console.log('dateSortable', dateSortable);
+        // console.log('drawingDate', drawingDate);
+        // console.log('moment(dateSortable).format(\'MM/DD/YYYY\')', moment(dateSortable).format('MM/DD/YYYY'));
+        if (drawingDate !== moment(dateSortable).format('MM/DD/YYYY')) {
+          db.insert(scrapedData, function (err, resultsAdded) {
+            if (err) {
+              console.log("There's a problem adding scraped results to the database: ", err);
+            } else if (resultsAdded) {
+              console.log("Results inserted in the database for " + scrapedData.date + " drawing");
+              sendDrawings();
+            } else {
+              console.log("No error, but the latest results may not have been added.");
+            }
+          });
+        } else {
+          sendDrawings();
+        }
       } else {
         console.log('Error scraping Powerball homepage:', err);
       }
     });
   }
   
-  // If today is not a draw day or today is a draw day and the time is before 2300, just send the results:
-  if (!isDrawDay || (isDrawDay && hourNow < 23)) {
+  // TODO: edit the following condition to determine if we don't have the most recent result (e.g., 00:01 the day after a draw day):
+  
+  // If today is not a draw day or today is a draw day and the time is before 2305, just send the results:
+  if (!isDrawDay || (isDrawDay && hourNow < 23 && minuteNow < 5)) {
     sendDrawings(response);
   } else {
     // Check to see if we have today's results in the database. If not, scrape the
     // Powerball.com homepage to see if the results are posted:
     db.find({}).sort({ dateSortable: -1 }).limit(1).exec(function (err, drawings) {
       drawings.forEach(function(drawing) {
-        // console.log(drawing.date);
+        // console.log('drawing.date', drawing.date);
+        // console.log('moment(dateStr).format("MM/DD/YYYY")', moment(dateStr).format('MM/DD/YYYY'));
+        // console.log('drawing.date !== moment(dateStr).format("MM/DD/YYYY")', drawing.date !== moment(dateStr).format('MM/DD/YYYY'));
         if (drawing.date !== moment(dateStr).format('MM/DD/YYYY')) {
-          getLatestResults(response);
+          getLatestResults(drawing.date);
         } else {
           sendDrawings(response);
         }
@@ -205,12 +229,12 @@ app.get("/reset", function (request, response) {
     } else {
       console.log("Database cleared");
       dbInit();
-      // response.redirect("/");
+      response.redirect("/");
     }
   });
 });
 
 // listen for requests
 var listener = app.listen(process.env.PORT, function () {
-  console.log('Your app is listening on port ' + listener.address().port);
+  // console.log('Your app is listening on port ' + listener.address().port);
 });
