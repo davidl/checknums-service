@@ -1,8 +1,9 @@
 // init project
 var compression = require('compression');
 var express = require('express');
+
 // setup a new database
-var Datastore = require('nedb'), 
+var Datastore = require('nedb'),
     db = new Datastore({ filename: '.data/datafile', autoload: true });
 var app = express();
 var http = require('http');
@@ -16,6 +17,7 @@ var winnumsPathLocal = 'winnums-text.txt';
 
 /*-- DATABASE INITIALIZATION --*/
 // Get the file from the Powerball site, parse it and add the drawings to the database.
+// NOTE: this is only necessary when creating the database for the first time or if it needs to be recreated.
 function dbInit () {
   var winnumsParsed = [];
   var processedLineNum = 0;
@@ -114,15 +116,16 @@ app.get("/", function (request, response) {
 
 app.get("/drawings", function (request, response) {
   var dateNow = moment().tz('America/New_York');
-  var dateStr = dateNow.format();
+  var dateStr = dateNow.format('MM/DD/YYYY');
   var hourNow = dateNow._d.getHours();
   var minuteNow = dateNow._d.getMinutes();
   var dayOfWeek = dateNow._d.getDay();
   var isDrawDay = dayOfWeek === 3 || dayOfWeek === 6;
-  
-  // console.log('dateStr', dateStr);
-  // console.log('minuteNow', minuteNow);
-  // console.log('isDrawDay', isDrawDay);
+  // The "Magic Hour" occurs after 2304 on draw day when we can expect that day's
+  // results to be posted to the Powerball.com homepage:
+  var isMagicHour = isDrawDay && hourNow === 23 && minuteNow > 4;
+  // Calculate the last drawing date. If we're not in the Magic Hour, use the most recent Wednesday or Saturday:
+  var lastDrawDateStr = isMagicHour ? dateStr : dateNow.day(dayOfWeek > 3 ? 3 : -1).format('MM/DD/YYYY');
   
   function sendDrawings () {
     var responseData = [];
@@ -197,26 +200,19 @@ app.get("/drawings", function (request, response) {
     });
   }
   
-  // TODO: edit the following condition to determine if we don't have the most recent result (e.g., 00:01 the day after a draw day):
-  
-  // If today is not a draw day or today is a draw day and the time is before 2305, just send the results:
-  if (!isDrawDay || (isDrawDay && hourNow < 23 && minuteNow < 5)) {
-    sendDrawings(response);
-  } else {
-    // Check to see if we have today's results in the database. If not, scrape the
-    // Powerball.com homepage to see if the results are posted:
-    db.find({}).sort({ dateSortable: -1 }).limit(1).exec(function (err, drawings) {
-      drawings.forEach(function(drawing) {
-        // console.log('drawing.date', drawing.date);
-        // console.log('moment(dateStr).format("MM/DD/YYYY")', moment(dateStr).format('MM/DD/YYYY'));
-        // console.log('drawing.date !== moment(dateStr).format("MM/DD/YYYY")', drawing.date !== moment(dateStr).format('MM/DD/YYYY'));
-        if (drawing.date !== moment(dateStr).format('MM/DD/YYYY')) {
-          getLatestResults(drawing.date);
-        } else {
-          sendDrawings(response);
-        }
-      });
+  // Check if the database has the results from the last draw date
+  var dbHasLatestResults = true; // let's be optimistic :)
+  db.find({}).sort({ dateSortable: -1 }).limit(1).exec(function (err, drawings) {
+    drawings.forEach(function(drawing) {
+      dbHasLatestResults = drawing.date == lastDrawDateStr;
     });
+  });
+  
+  // If we have the latest results, send them. If not, scrape them (and then send them):
+  if (dbHasLatestResults) {
+    sendDrawings();
+  } else {
+    getLatestResults();
   }
 });
 
