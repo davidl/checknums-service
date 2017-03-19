@@ -197,6 +197,8 @@ app.get("/drawings", function (request, response) {
     });
   }
   
+  // TODO: edit the following condition to determine if we don't have the most recent result (e.g., 00:01 the day after a draw day):
+  
   // If today is not a draw day or today is a draw day and the time is before 2305, just send the results:
   if (!isDrawDay || (isDrawDay && hourNow < 23 && minuteNow < 5)) {
     sendDrawings(response);
