@@ -117,9 +117,9 @@ app.get("/", function (request, response) {
 app.get("/drawings", function (request, response) {
   var dateNow = moment().tz('America/New_York');
   var dateStr = dateNow.format('MM/DD/YYYY');
-  var hourNow = dateNow._d.getHours();
-  var minuteNow = dateNow._d.getMinutes();
-  var dayOfWeek = dateNow._d.getDay();
+  var hourNow = dateNow.toDate().getHours();
+  var minuteNow = dateNow.toDate().getMinutes();
+  var dayOfWeek = dateNow.toDate().getDay();
   var isDrawDay = dayOfWeek === 3 || dayOfWeek === 6;
   // The "Magic Hour" occurs after 2304 on draw day when we can expect that day's
   // results to be posted to the Powerball.com homepage:
