@@ -1,29 +1,34 @@
 {
-	"name": "checknums-service",
-	"version": "0.0.1",
-	"description": "Gets drawing results from Powerball.com",
-	"main": "server.js",
-	"scripts": {
-		"start": "node server.js"
-	},
-	"dependencies": {
-		"express": "^4.12.4",
-		"nedb": "*",
-		"scrape-it": "*",
-		"moment": "*",
-		"moment-timezone": "^0.5.11",
-		"quickline": "^1.0.4",
-		"compression": "^1.6.2"
-	},
-	"repository": {
-		"type": "Gomix",
-		"url": "https://hyperdev.com/#!/project/ne-db"
-	},
-	"keywords": [
-		"node",
-		"gomix",
-		"express",
-		"nedb"
-	],
-	"license": "MIT"
+  "name": "checknums-service",
+  "version": "0.0.1",
+  "description": "Backend service to update checknums.com",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.12.4",
+    "nedb": "*",
+    "scrape-it": "*",
+    "moment": "*",
+    "moment-timezone": "^0.5.11",
+    "quickline": "^1.0.4",
+    "compression": "^1.6.2",
+    "twit": "^2.1.0",
+    "jsonfile": "^3.0.0",
+    "gh-pages": "^1.0.0",
+    "request": "^2.85.0",
+    "request-promise": "^4.2.2"
+  },
+  "repository": {
+    "type": "Gomix",
+    "url": "https://hyperdev.com/#!/project/ne-db"
+  },
+  "keywords": [
+    "node",
+    "gomix",
+    "express",
+    "nedb"
+  ],
+  "license": "MIT"
 }
