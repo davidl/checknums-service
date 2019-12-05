@@ -398,7 +398,7 @@ app.post('/purge-cache', function (request, response) {
   // console.log(request);
   console.log('purge CloudFlare cache...');
   deleteCFCache();
-  response.redirect('/');
+  response.status(200).end();
 });
 
 app.get("/jackpot", function (request, response) {
